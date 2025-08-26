@@ -1,34 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Calendar Range Selection</title>
+  <title>Mobile-Friendly Calendar Range Selection</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      min-height: 100vh;
       margin: 0;
       background-color: #f0f0f0;
+      touch-action: manipulation; /* Prevent default touch behaviors like zooming */
     }
-
+    .calendar-container {
+      max-width: 100%;
+      padding: 10px;
+      box-sizing: border-box;
+    }
     .calendar {
       display: grid;
-      grid-template-columns: repeat(7, 60px);
-      gap: 5px;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
       background-color: #fff;
-      padding: 20px;
+      padding: 15px;
       border-radius: 8px;
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     }
-
     .day {
-      width: 60px;
-      height: 60px;
+      width: 100%;
+      aspect-ratio: 1 / 1; /* Square shape */
+      min-width: 40px;
+      min-height: 40px;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -36,20 +41,18 @@
       user-select: none;
       border: 2px solid transparent;
       background-color: #e0e0e0;
-      border-radius: 4px;
+      border-radius: 6px;
       font-size: 16px;
+      touch-action: none; /* Prevent scroll during touch */
     }
-
-    .day:hover {
+    .day:hover, .day:active {
       background-color: #f0f0f0;
     }
-
     .day.selected {
       border: 2px solid #007bff;
       background-color: #e7f3ff;
       position: relative;
     }
-
     .day.selected::after {
       content: '✔';
       position: absolute;
@@ -57,21 +60,36 @@
       font-size: 14px;
       font-weight: bold;
     }
-
     .day.empty {
       background-color: transparent;
       cursor: default;
     }
-
     h2 {
       text-align: center;
-      margin-bottom: 10px;
+      margin: 10px 0;
+      font-size: 1.5em;
+    }
+    @media (max-width: 600px) {
+      .calendar {
+        gap: 5px;
+        padding: 10px;
+      }
+      .day {
+        min-width: 35px;
+        min-height: 35px;
+        font-size: 14px;
+      }
+      .day.selected::after {
+        font-size: 12px;
+      }
+      h2 {
+        font-size: 1.2em;
+      }
     }
   </style>
 </head>
-
 <body>
-  <div>
+  <div class="calendar-container">
     <h2>August 2025</h2>
     <div class="calendar" id="calendar">
       <!-- Calendar days will be dynamically generated -->
@@ -83,11 +101,11 @@
     let startDay = null;
     let selectedDays = new Set();
 
-    // Generate a simple August 2025 calendar (starting on Friday)
+    // Generate August 2025 calendar (starting on Friday)
     const daysInMonth = 31;
     const firstDayOfMonth = 5; // August 1, 2025 is a Friday (0=Sun, 1=Mon, ..., 5=Fri)
     const days = [];
-
+    
     // Add empty days for the first week
     for (let i = 0; i < firstDayOfMonth; i++) {
       days.push({ number: null, empty: true });
@@ -110,35 +128,62 @@
       calendar.appendChild(dayElement);
     });
 
-    // Start selection on mousedown
-    calendar.addEventListener('mousedown', (e) => {
-      const dayElement = e.target.closest('.day:not(.empty)');
-      if (dayElement) {
+    // Start selection (mouse or touch)
+    function startSelection(dayElement) {
+      if (dayElement && !dayElement.classList.contains('empty')) {
         isSelecting = true;
         startDay = parseInt(dayElement.dataset.day);
         clearSelection();
         toggleSelection(startDay);
       }
-    });
+    }
 
-    // Handle range selection on mouseover
-    calendar.addEventListener('mouseover', (e) => {
-      if (!isSelecting) return;
-      const dayElement = e.target.closest('.day:not(.empty)');
-      if (dayElement) {
+    // Handle range selection (mouse or touch)
+    function handleSelection(dayElement) {
+      if (isSelecting && dayElement && !dayElement.classList.contains('empty')) {
         const endDay = parseInt(dayElement.dataset.day);
         selectRange(startDay, endDay);
       }
-    });
+    }
 
-    // End selection on mouseup
-    document.addEventListener('mouseup', () => {
+    // End selection
+    function endSelection() {
       isSelecting = false;
       startDay = null;
+    }
+
+    // Mouse events
+    calendar.addEventListener('mousedown', (e) => {
+      const dayElement =e.target.closest('.day');
+      startSelection(dayElement);
+      e.preventDefault(); // Prevent text selection
     });
 
+    calendar.addEventListener('mouseover', (e) => {
+      const dayElement = e.target.closest('.day');
+      handleSelection(dayElement);
+    });
+
+    document.addEventListener('mouseup', endSelection);
+
+    // Touch events
+    calendar.addEventListener('touchstart', (e) => {
+      const dayElement = e.target.closest('.day');
+      startSelection(dayElement);
+      e.preventDefault(); // Prevent scrolling
+    });
+
+    calendar.addEventListener('touchmove', (e) => {
+      const touch = e.touches[0];
+      const dayElement = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.day');
+      handleSelection(dayElement);
+      e.preventDefault(); // Prevent scrolling
+    });
+
+    document.addEventListener('touchend', endSelection);
+
     // Clear current selection
-    function clearSelection () {
+    function clearSelection() {
       selectedDays.clear();
       document.querySelectorAll('.day.selected').forEach(day => {
         day.classList.remove('selected');
@@ -146,7 +191,7 @@
     }
 
     // Toggle selection for a single day
-    function toggleSelection (day) {
+    function toggleSelection(day) {
       const dayElement = document.querySelector(`.day[data-day="${day}"]`);
       if (dayElement) {
         selectedDays.add(day);
@@ -155,14 +200,14 @@
     }
 
     // Select a range of days
-    function selectRange (start, end) {
+    function selectRange(start, end) {
       clearSelection();
       const min = Math.min(start, end);
       const max = Math.max(start, end);
       for (let i = min; i <= max; i++) {
-            toggleSelection(i);
-          }
-        }
-      </script>
+        toggleSelection(i);
+      }
+    }
+  </script>
 </body>
 </html>
