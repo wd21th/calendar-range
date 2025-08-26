@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calendar Range Selection</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+    }
+
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 60px);
+      gap: 5px;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .day {
+      width: 60px;
+      height: 60px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      border: 2px solid transparent;
+      background-color: #e0e0e0;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+
+    .day:hover {
+      background-color: #f0f0f0;
+    }
+
+    .day.selected {
+      border: 2px solid #007bff;
+      background-color: #e7f3ff;
+      position: relative;
+    }
+
+    .day.selected::after {
+      content: '✔';
+      position: absolute;
+      color: #007bff;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .day.empty {
+      background-color: transparent;
+      cursor: default;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div>
+    <h2>August 2025</h2>
+    <div class="calendar" id="calendar">
+      <!-- Calendar days will be dynamically generated -->
+    </div>
+  </div>
+  <script>
+    const calendar = document.getElementById('calendar');
+    let isSelecting = false;
+    let startDay = null;
+    let selectedDays = new Set();
+
+    // Generate a simple August 2025 calendar (starting on Friday)
+    const daysInMonth = 31;
+    const firstDayOfMonth = 5; // August 1, 2025 is a Friday (0=Sun, 1=Mon, ..., 5=Fri)
+    const days = [];
+
+    // Add empty days for the first week
+    for (let i = 0; i < firstDayOfMonth; i++) {
+      days.push({ number: null, empty: true });
+    }
+    // Add actual days
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push({ number: i, empty: false });
+    }
+
+    // Render calendar
+    days.forEach((day, index) => {
+      const dayElement = document.createElement('div');
+      dayElement.classList.add('day');
+      if (day.empty) {
+        dayElement.classList.add('empty');
+      } else {
+        dayElement.dataset.day = day.number;
+        dayElement.textContent = day.number;
+      }
+      calendar.appendChild(dayElement);
+    });
+
+    // Start selection on mousedown
+    calendar.addEventListener('mousedown', (e) => {
+      const dayElement = e.target.closest('.day:not(.empty)');
+      if (dayElement) {
+        isSelecting = true;
+        startDay = parseInt(dayElement.dataset.day);
+        clearSelection();
+        toggleSelection(startDay);
+      }
+    });
+
+    // Handle range selection on mouseover
+    calendar.addEventListener('mouseover', (e) => {
+      if (!isSelecting) return;
+      const dayElement = e.target.closest('.day:not(.empty)');
+      if (dayElement) {
+        const endDay = parseInt(dayElement.dataset.day);
+        selectRange(startDay, endDay);
+      }
+    });
+
+    // End selection on mouseup
+    document.addEventListener('mouseup', () => {
+      isSelecting = false;
+      startDay = null;
+    });
+
+    // Clear current selection
+    function clearSelection () {
+      selectedDays.clear();
+      document.querySelectorAll('.day.selected').forEach(day => {
+        day.classList.remove('selected');
+      });
+    }
+
+    // Toggle selection for a single day
+    function toggleSelection (day) {
+      const dayElement = document.querySelector(`.day[data-day="${day}"]`);
+      if (dayElement) {
+        selectedDays.add(day);
+        dayElement.classList.add('selected');
+      }
+    }
+
+    // Select a range of days
+    function selectRange (start, end) {
+      clearSelection();
+      const min = Math.min(start, end);
+      const max = Math.max(start, end);
+      for (let i = min; i <= max; i++) {
+            toggleSelection(i);
+          }
+        }
+      </script>
+</body>
+</html>
